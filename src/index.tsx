@@ -1,17 +1,64 @@
-import React from 'react';
+import * as esbuild from 'esbuild-wasm';
+import { useEffect, useState, useRef } from 'react';
 import ReactDOM from 'react-dom';
-import './index.css';
-import App from './App';
-import reportWebVitals from './reportWebVitals';
+import { unpkgPathPlugin } from './plugin/unpkg-path-plugin';
+import { fetchPlugin } from './plugin/fetch-plugin';
 
-ReactDOM.render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>,
-  document.getElementById('root')
-);
+const App = () => {
+  const ref = useRef<any>();
+  const [input, setInput] = useState('');
+  const [code, setCode] = useState('');
 
-// If you want to start measuring performance in your app, pass a function
-// to log results (for example: reportWebVitals(console.log))
-// or send to an analytics endpoint. Learn more: https://bit.ly/CRA-vitals
-reportWebVitals();
+  // esbuild-wasm init
+  const startService = async () => {
+    ref.current = await esbuild.startService({
+      worker: true,
+      wasmURL: 'https://unpkg.com/esbuild-wasm@0.8.27/esbuild.wasm'
+    });
+  };
+
+  useEffect(() => {
+    startService();
+  }, [])
+
+  const onClick = async () => {
+    if (!ref.current) {
+      return;
+    }
+
+    const result = await ref.current.build({
+      entryPoints: ['index.js'],
+      bundle: true,
+      write: false,
+      plugins: [
+        unpkgPathPlugin(),
+        fetchPlugin(input)
+      ],
+      define: {
+        'process.env.NODE_ENV': '"production"',
+        global: 'window'
+      }
+    });
+
+    setCode(result.outputFiles[0].text);
+  
+    try {
+      eval(result.outputFiles[0].text);
+    } catch (err) {
+      console.log(err);
+    }
+  };
+
+  return(
+    <div>
+      <textarea value={input} onChange={e => setInput(e.target.value)} />
+      <div>
+        <button onClick={onClick}>Submit</button>
+      </div>
+      <pre>{code}</pre>
+      <iframe sandbox="allow-same-origin" src="/test.html" />
+    </div>
+  );
+};
+
+ReactDOM.render(<App />, document.querySelector('#root'));
