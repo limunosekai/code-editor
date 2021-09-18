@@ -3,12 +3,12 @@ import { useEffect, useState, useRef } from 'react';
 import ReactDOM from 'react-dom';
 import { unpkgPathPlugin } from './plugin/unpkg-path-plugin';
 import { fetchPlugin } from './plugin/fetch-plugin';
+import CodeEditor from './components/code-editor';
 
 const App = () => {
   const ref = useRef<any>();
   const iframe = useRef<any>();
   const [input, setInput] = useState('');
-  const [code, setCode] = useState('');
 
   // esbuild-wasm init
   const startService = async () => {
@@ -43,7 +43,6 @@ const App = () => {
       }
     });
 
-    // setCode(result.outputFiles[0].text);
     iframe.current.contentWindow.postMessage(result.outputFiles[0].text, '*');
   };
 
@@ -67,14 +66,17 @@ const App = () => {
     </html>
   `;
 
-  return(
+  return (
     <div>
-      <textarea value={input} onChange={e => setInput(e.target.value)} />
+      <CodeEditor />
+      <textarea 
+        value={input} 
+        onChange={e => setInput(e.target.value)} 
+      />
       <div>
         <button onClick={onClick}>Submit</button>
       </div>
-      <pre>{code}</pre>
-      <iframe ref={iframe} srcDoc={html} sandbox="allow-scripts" />
+      <iframe title="code preview" ref={iframe} srcDoc={html} sandbox="allow-scripts" />
     </div>
   );
 };
